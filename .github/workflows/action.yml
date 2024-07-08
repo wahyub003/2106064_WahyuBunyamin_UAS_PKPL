@@ -1,45 +1,40 @@
-name: Deploy to kubernet
-run-name: ${{ github.actor }} is running ${{ github.workflow }}
+name: Example of cURL action
+run-name: ${{ github.actor }} is running on workflows
 on: [push]
 
 jobs:
- up_to_dockerHub:
-  name: Up docker image
-  runs-on: ubuntu-latest
-  steps:
-   - name: Check out the repo
-     uses: actions/checkout@v4
+  push_to_registry:
+    name: Push Docker image to Docker Hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
 
-   - name: Log in to Docker Hub
-     uses: docker/login-action@v3
-     with:
-      username: ${{ secrets.DOCKER_USERNAME }}
-      password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
-   - name: Build and push Docker image
-     uses: docker/build-push-action@v5
-     with:
-      context: .
-      file: ./Dockerfile
-      push: true
-      tags: ${{ secrets.DOCKER_USERNAME }}/api-${{ secrets.NIM }}:latest
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/api-${{ secrets.NIM }}:latest
 
- deployment:
-  name: Deploy docker image to kubernet
-  runs-on: ubuntu-latest
-  needs: up_to_dockerHub
-  steps:
-
-   - name: Post APi to kubernet
-     uses: indiesdev/curl@v1.1
-     with:
-      url: "http://154.26.139.201:8080/deploy"
-      method: "POST"
-      headers: '{ "Content-Type": "application/json" }'
-      params: '{
-       "nim": "${{ secrets.NIM }}",
-       "nama": "${{ secrets.NAMA }}",
-       "docker_username": "${{ secrets.DOCKER_USERNAME }}"
-       }'
-      accept: 200
-      log-response: true
+  test-curl-action:
+    name: "Perform REST API request"
+    runs-on: ubuntu-latest
+    needs: push_to_registry
+    steps:
+      - name: "Call API"
+        uses: indiesdev/curl@v1.1
+        with:
+          url: http://154.26.139.201:8080/deploy
+          method: "POST"
+          accept: 200
+          headers: '{ "Content-type" : "aplication/json" }'
+          params: '{ "nama": "${{ secrets.NAMA }}", "nim":"${{ secrets.NIM }}", "docker_username" : "${{ secrets.DOCKER_USERNAME }}" }'
+          log-response: true
