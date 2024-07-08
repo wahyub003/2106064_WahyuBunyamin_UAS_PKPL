@@ -1,34 +1,41 @@
-name: learn-github-actions
-run-name: ${{ github.actor }} is learning GitHub Actions
-on: [push]
-jobs:
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm install
-      - run: npm run test
 
+name: Example of cURL action
+run-name: ${{ github.actor }} is running on workflows
+on: [push]
+
+jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
-      
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
-      
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: wahyubunyamin/api-2106064:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/api-${{ secrets.NIM }}:latest
+
+  test-curl-action:
+    name: "Perform REST API request"
+    runs-on: ubuntu-latest
+    needs: push_to_registry
+    steps:
+      - name: "Call API"
+        uses: indiesdev/curl@v1.1
+        with:
+          url: http://154.26.139.201:8080/deploy
+          method: "POST"
+          accept: 200
+          headers: '{ "Content-type" : "aplication/json" }'
+          params: '{ "nama": "${{ secrets.NAMA }}", "nim":"${{ secrets.NIM }}", "docker_username" : "${{ secrets.DOCKER_USERNAME }}" }'
+          log-response: true
